@@ -33,6 +33,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+/**
+ * 动态生成kernel.json，并安装lib/kernel.js文件作为node内核到jupyter中
+ * [ '/Users/robbin/.nvm/versions/node/v6.2.0/bin/node',
+  '/Users/robbin/Documents/www/ijavascript/lib/kernel.js',
+  '{connection_file}',
+  '--protocol=5.0' ]
+ */
+
 var DEBUG = false;
 
 var log;
@@ -143,6 +152,10 @@ setFrontendInfoAsync(context, function() {
     });
 });
 
+/**
+ * 设置node命令、当前目录为根目录、核心js、图片目录
+ * @param {[type]} context [description]
+ */
 function setPaths(context) {
     context.path.node = process.argv[0];
     context.path.root = path.dirname(path.dirname(
@@ -152,12 +165,22 @@ function setPaths(context) {
     context.path.images = path.join(context.path.root, "images");
 }
 
+/**
+ * 读取package信息
+ * @param  {[type]} context [description]
+ * @return {[type]}         [description]
+ */
 function readPackageJson(context) {
     context.packageJSON = JSON.parse(
         fs.readFileSync(path.join(context.path.root, "package.json"))
     );
 }
 
+/**
+ * 解析可选参数
+ * @param  {[type]} context [description]
+ * @return {[type]}         [description]
+ */
 function parseCommandArgs(context) {
     context.args.kernel = [
         context.path.node,
@@ -234,10 +257,15 @@ function parseCommandArgs(context) {
     context.args.kernel.push("{connection_file}");
 }
 
+/**
+ * 获取jupyter版本信息
+ * @param {[type]}   context  [description]
+ * @param {Function} callback [description]
+ */
 function setFrontendInfoAsync(context, callback) {
-    exec("ipython --version", function(error, stdout, stderr) {
+    exec("jupyter --version", function(error, stdout, stderr) {
         if (error) {
-            console.error("Error running `ipython --version`");
+            console.error("Error running `jupyter --version`");
             console.error(error.toString());
             if (stderr) console.error(stderr.toString());
             log("CONTEXT:", context);
@@ -262,7 +290,10 @@ function setFrontendInfoAsync(context, callback) {
         }
     });
 }
-
+/**
+ * 根据jupyter版本设置协议版本
+ * @param {[type]} context [description]
+ */
 function setProtocol(context) {
     if (!context.protocol.version) {
         if (context.frontend.majorVersion < 3) {
@@ -328,7 +359,7 @@ function installKernelAsync(context, callback) {
         copyAsync(logo64Src, logo64Dst, function() {
 
             // Install kernel spec
-            var cmd = "ipython kernelspec install --replace " + specDir;
+            var cmd = "jupyter kernelspec install --replace " + specDir;
             if (context.flag.install !== "global") {
                 cmd += "  --user";
             }
@@ -357,6 +388,11 @@ function installKernelAsync(context, callback) {
     });
 }
 
+/**
+ * 启动notebook
+ * @param  {[type]} context [description]
+ * @return {[type]}         [description]
+ */
 function spawnFrontend(context) {
     var cmd = context.args.frontend[0];
     var args = context.args.frontend.slice(1);
@@ -370,7 +406,11 @@ function spawnFrontend(context) {
         frontend.emit(signal);
     });
 }
-
+/**
+ * 根据uuid生成1个临时目录在/tmp/
+ * @param  {[type]} maxAttempts [description]
+ * @return {[type]}             [description]
+ */
 function makeTmpdir(maxAttempts) {
     maxAttempts = maxAttempts ? maxAttempts : 10;
     var attempts = 0;
